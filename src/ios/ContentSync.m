@@ -132,12 +132,16 @@
     __block NSString* appId = [command argumentAtIndex:1];
     __block NSURL* storageDirectory = [ContentSync getStorageDirectory];
     __block NSURL *appPath = [storageDirectory URLByAppendingPathComponent:appId];
+    __block BOOL appUpdated = [ContentSync hasAppBeenUpdated];
+    __block BOOL cacheExists = [fileManager fileExistsAtPath:[appPath path]];
+
     NSLog(@"appPath %@", appPath);
 
     if(local == YES) {
         NSLog(@"Requesting local copy of %@", appId);
-        if([fileManager fileExistsAtPath:[appPath path]]) {
-            if (![ContentSync hasAppBeenUpdated]) {
+        if(cacheExists) {
+            NSLog(@"Found local copy %@", [appPath path]);
+            if (!appUpdated) {
                 NSLog(@"Found local copy %@", [appPath path]);
                 CDVPluginResult *pluginResult = nil;
 
@@ -175,7 +179,7 @@
             [message setObject:[NSNumber numberWithInteger:-1] forKey:@"responseCode"];
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:message];
             NSLog(@"%@", [error localizedDescription]);
-        } else {
+        } else if (!cacheExists || appUpdated) {
             [self.commandDelegate runInBackground:^{
                 CDVPluginResult *pluginResult = nil;
                 [self copyCordovaAssets:[appPath path] copyRootApp:YES];
